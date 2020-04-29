@@ -4,15 +4,38 @@ import sys
 
 # main method
 def main():
-    file_name = "assignment3_my_arp.pcap"
-    f = open(file_name, 'rb')
-    pcap = dpkt.pcap.Reader(f)
-    read_pcap_arp(pcap)
-    sort_arp()
-    print(len(arp_packets))
+    file_name = sys.argv[1]
+    try:
+        if not file_name.__contains__(".pcap"):
+            print("Please enter a valid pcap file name")
+        else:
+            f = open(file_name, 'rb')
+            pcap = dpkt.pcap.Reader(f)
+            read_pcap_arp(pcap)
+            sort_arp()
+            print_header()
+    except FileNotFoundError:
+        print("Please enter a valid pcap file name")
 
-    print_arp_request()
-    print_arp_response()
+
+# printing out header
+def print_header():
+    print(str(len(arp_packets)) + " total ARP packets captured")
+    print("\t" + str(len(arp_requests)) + " non broadcast ARP requests")
+    print("\t" + str(len(arp_responses)) + " non broadcast ARP responses")
+    broadcast = len(arp_packets) - (len(arp_requests) + len(arp_responses))
+    print("\t" + str(broadcast) + " ARP broadcast packets")
+
+    print("\nPrinting out the first ARP request-response pair:\n")
+
+    if len(arp_requests) != 0:
+        print_arp_request()
+    else:
+        print("There are no ARP requests to print")
+    if len(arp_responses) != 0:
+        print_arp_response()
+    else:
+        print("There are no ARP responses to print")
 
 
 # prints out the first ARP request packet
@@ -46,10 +69,11 @@ def print_arp_response():
 # sorts the ARP packets into request and response packets
 def sort_arp():
     for arp in arp_packets:
-        if arp[20:22] == b'\x00\x01':
-            arp_requests.append(arp)
-        else:
-            arp_responses.append(arp)
+        if arp[0:6] != b'\xff\xff\xff\xff\xff\xff':
+            if arp[20:22] == b'\x00\x01':
+                arp_requests.append(arp)
+            else:
+                arp_responses.append(arp)
 
 
 # returns the source/destination IP address
@@ -90,4 +114,8 @@ arp_requests = []
 arp_responses = []
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except IndexError:
+        print("Please specify a pcap file name after \"python analysis_pcap_arp.py\"\nFor example: "
+              "\"> python analysis_pcap_tcp.py assignment3_my_arp.pcap\"")
